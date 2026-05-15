@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_meta": {
+    "version": "0.1.0-scaffold",
+    "owner": "Latent Space LLC, DBA Komatik",
+    "purpose": "Source-of-truth capability map. Each capability_id is the join key for proposal authoring (Vol 2 §1, §2, §3, §6 + Vol 5 §5.2 + cost-volume scoping). Templates pull capability paragraphs and PI bio paragraphs by capability_id.",
+    "review_cycle": "Update on each Phase I/II submission. Annual full review.",
+    "last_updated": "2026-04-29T04:05:00Z",
+    "review_status": "scaffold — David fact-check Wed AM"
+  },
+  "company": {
+    "legal_name": "Latent Space LLC",
+    "dba": "Komatik",
+    "uei": "XHM9MQFR5VC9"
+  },
+  "_archive_capabilities": {
+    "_note": "Capabilities mentioned in V4.1 brand line that are not currently positioned for SBIR/grant work. Listed for completeness; not joined to active proposal templates. The former archived slug 'cairn' conflicts with the canonical repository name and has been renamed here for historical disambiguation.",
+    "ids": ["pack", "trailhead", "slipstream", "lodge", "legacy_cairn_capability", "sundog", "kindling"]
+  }
+}
