@@ -32,8 +32,8 @@ Agent configs live under [config/agents/](config/agents/).
 
 - **Frequency:** Daily (`CYCLE_INTERVAL_MINUTES=1440`), or on significant
   upstream event
-- **Steps:** `synthesis` → `mission` (synthesizer produces, guardian
-  reviews — same pattern as Root HQ)
+- **Steps:** `synthesis` → `mission` via `CYCLE_STEPS=synthesis,mission`
+  (synthesizer produces, guardian reviews — same pattern as Root HQ)
 
 ## Boot
 
