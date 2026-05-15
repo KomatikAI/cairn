@@ -276,8 +276,8 @@ flows through Supabase — the shared well of knowledge at the base of the tree.
 
 ```bash
 # Clone
-git clone https://github.com/dschirmer-shiftkey/komatik-yggdrasil.git
-cd komatik-yggdrasil
+git clone https://github.com/KomatikAI/cairn.git
+cd cairn
 
 # Configure
 cp infrastructure/.env.example infrastructure/.env
@@ -326,7 +326,7 @@ grows, so does the budget. Every token is tracked in each seed's `TOKENS.md`.
 ## Repository Structure
 
 ```
-komatik-yggdrasil/
+cairn/
 ├── infrastructure/
 │   ├── compose.yaml              # Base Docker Compose template
 │   ├── .env.example              # Environment variables
