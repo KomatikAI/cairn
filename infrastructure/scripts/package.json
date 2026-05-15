@@ -7,7 +7,8 @@
   "scripts": {
     "test:vertical-slice": "node --preserve-symlinks test-vertical-slice.js",
     "test:apex-cycle": "node --preserve-symlinks test-apex-cycle.js",
-    "test:vertical-slice:dry": "node --preserve-symlinks test-vertical-slice.js --dry-run"
+    "test:vertical-slice:dry": "node --preserve-symlinks test-vertical-slice.js --dry-run",
+    "test:apex-cycle:dry": "node --preserve-symlinks test-apex-cycle.js --dry-run"
   },
   "dependencies": {
     "@komatik/event-processor": "file:../event-processor",

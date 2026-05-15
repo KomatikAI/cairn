@@ -8,6 +8,7 @@ const TABLE_NAMES = [
 ];
 
 function clone(value) {
+  if (value === undefined) return undefined;
   return JSON.parse(JSON.stringify(value));
 }
 
@@ -29,6 +30,37 @@ function applyProjection(row, columns) {
       .filter(Boolean)
       .map((column) => [column, clone(row[column])])
   );
+}
+
+
+function contentionMapRows(database) {
+  return database.findings
+    .filter((finding) => finding.confidence === "contested" && finding.kind === "contested_tension")
+    .map((finding) => {
+      const timesReferenced = database.citations.filter(
+        (citation) => citation.cited_finding_id === finding.id
+      ).length;
+
+      return {
+        id: finding.id,
+        title: finding.title,
+        summary: finding.summary,
+        source_type: finding.source_type,
+        source_id: finding.source_id,
+        root_id: finding.root_id,
+        category_id: finding.category_id,
+        spans_roots: clone(finding.spans_roots || []),
+        position_a: finding.payload?.position_a,
+        position_b: finding.payload?.position_b,
+        structural_reason: finding.payload?.structural_reason,
+        parties: clone(finding.payload?.parties),
+        created_at: finding.created_at,
+        updated_at: finding.updated_at,
+        age_unresolved: null,
+        times_referenced: timesReferenced,
+      };
+    })
+    .sort((a, b) => b.times_referenced - a.times_referenced);
 }
 
 function matchesFilter(row, filter) {
@@ -135,6 +167,7 @@ class DryRunQuery {
   }
 
   _rows() {
+    if (this.table === "contention_map") return contentionMapRows(this.database);
     return this.database[this.table];
   }
 
@@ -177,6 +210,10 @@ class DryRunQuery {
   }
 
   _insert() {
+    if (this.table === "contention_map") {
+      return { data: null, error: { message: "contention_map is read-only" } };
+    }
+
     const now = new Date().toISOString();
     const inserted = this.payload.map((row) => {
       const next = {
@@ -197,6 +234,10 @@ class DryRunQuery {
   }
 
   _update() {
+    if (this.table === "contention_map") {
+      return { data: null, error: { message: "contention_map is read-only" } };
+    }
+
     const now = new Date().toISOString();
     for (const row of this._matchingRows()) {
       Object.assign(row, clone(this.patch));
@@ -206,6 +247,10 @@ class DryRunQuery {
   }
 
   _delete() {
+    if (this.table === "contention_map") {
+      return { data: null, error: { message: "contention_map is read-only" } };
+    }
+
     const rows = this._rows();
     for (let index = rows.length - 1; index >= 0; index -= 1) {
       if (this.filters.every((filter) => matchesFilter(rows[index], filter))) {

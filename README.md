@@ -313,6 +313,20 @@ acknowledge, context assembly read-back. The dry-run mode uses an in-memory
 Supabase adapter so handler and query wiring can be validated without touching
 the shared project.
 
+### Apex Smoke Test
+
+```bash
+SUPABASE_URL=https://xxx.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=eyJ... \
+cd infrastructure/scripts && npm run test:apex-cycle
+
+# Offline smoke test for apex schema/event wiring
+cd infrastructure/scripts && npm run test:apex-cycle:dry
+```
+
+Exercises apex finding shapes, the Contention Map view, Public Signal routing,
+and Collaboration Protocol event emission.
+
 ---
 
 ## The Pledge
