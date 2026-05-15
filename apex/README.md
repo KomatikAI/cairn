@@ -52,8 +52,9 @@ All pre-boot dependencies are in place:
    `contention_map` view
 2. **Event processor** — `PROCESSOR_TYPE=apex` in
    [`infrastructure/event-processor/index.js`](../infrastructure/event-processor/index.js)
-   drains `finding_promoted`, `signal_digested`, `potential_conflict`,
-   and `knowledge_available` events
+   drains `finding_promoted` and `knowledge_available` events, routes
+   `signal_digested` themes with `signal_routed`, and turns
+   `potential_conflict` into `collaboration_required` events
 3. **Bifrost** — [`config/bifrost.json`](config/bifrost.json) adds
    Opus + Sonnet to the provider models and virtual key allowlist; the
    compose override mounts it over the base template
