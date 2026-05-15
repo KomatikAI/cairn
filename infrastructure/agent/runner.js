@@ -38,6 +38,7 @@ import { Pool } from "pg";
 import yaml from "js-yaml";
 import { assembleContext } from "./lib/context-assembler.js";
 import { logDecision } from "./lib/decisions.js";
+import { getSupabase, publishFinding, postKnowledgeEvent } from "@komatik/shared/supabase";
 
 const ROLE = process.env.AGENT_ROLE;
 const AGENT_ID = process.env.AGENT_ID || ROLE;
@@ -49,6 +50,10 @@ const CONTEXT_BUDGET_PATH = path.join(WORKSPACE, "config", "context-budget.yaml"
 const AGENT_CONFIG_PATH = path.join(WORKSPACE, "config", "agent.yaml");
 const CAPACITY_CONFIG_PATH = path.join(WORKSPACE, "config", "agent-capacity.yaml");
 const OUTPUT_DIR = path.join(WORKSPACE, "output");
+const SOURCE_TYPE = process.env.SOURCE_TYPE || "seed";
+const SOURCE_ID = process.env.SOURCE_ID || process.env.SEED_DIR || "unknown";
+const CATEGORY_ID = process.env.CATEGORY_ID || null;
+const ROOT_ID = process.env.ROOT_ID || null;
 
 const MAX_CONSECUTIVE_FAILURES = 5;
 const POLL_INTERVAL_MS = 30_000;
@@ -298,6 +303,121 @@ async function callBifrost(systemPrompt, userPrompt, opts = {}) {
   };
 }
 
+
+// ── Structured World Tree Findings ─────────────────────────────────────
+
+function parseJsonBlocks(content) {
+  const blocks = [];
+  const fencePattern = /```json\s*([\s\S]*?)```/gi;
+  for (const match of content.matchAll(fencePattern)) {
+    try {
+      blocks.push(JSON.parse(match[1]));
+    } catch (err) {
+      console.warn(`[agent:${ROLE}] Ignoring invalid JSON block: ${err.message}`);
+    }
+  }
+  return blocks;
+}
+
+function extractStructuredFindings(content) {
+  return parseJsonBlocks(content).flatMap((block) => {
+    if (Array.isArray(block?.world_tree_findings)) return block.world_tree_findings;
+    if (Array.isArray(block?.findings)) return block.findings;
+    if (block?.title && block?.summary && block?.content) return [block];
+    return [];
+  });
+}
+
+function eventTypeForFinding(finding) {
+  switch (finding.kind) {
+    case "collaboration_position":
+      return "collaboration_position_published";
+    case "contested_tension":
+      return "contested_tension";
+    case "signal_response":
+      return "signal_decided";
+    case "cross_root_pattern":
+      return "cross_root_pattern_detected";
+    case "mission_drift_flag":
+      return "mission_drift_flagged";
+    default:
+      return "knowledge_available";
+  }
+}
+
+function targetForFindingEvent(finding) {
+  if (finding.kind === "collaboration_position") {
+    return { targetType: "apex", targetId: "apex" };
+  }
+
+  if (SOURCE_TYPE === "category") return { targetType: "root", targetId: ROOT_ID };
+  if (SOURCE_TYPE === "root") return { targetType: "apex", targetId: "apex" };
+  if (SOURCE_TYPE === "seed") return { targetType: "category", targetId: CATEGORY_ID };
+  return { targetType: null, targetId: null };
+}
+
+async function publishStructuredFindings(content, step, result) {
+  if (ROLE !== "synthesis") return;
+
+  const findings = extractStructuredFindings(content);
+  if (findings.length === 0) return;
+
+  const supabase = getSupabase();
+  if (!supabase) {
+    console.warn(`[agent:${ROLE}] Supabase not configured — skipping ${findings.length} structured finding(s)`);
+    return;
+  }
+
+  for (const finding of findings) {
+    if (!finding.title || !finding.summary || !finding.content) {
+      console.warn(`[agent:${ROLE}] Skipping structured finding without title, summary, or content`);
+      continue;
+    }
+
+    const published = await publishFinding(supabase, {
+      sourceType: finding.source_type || SOURCE_TYPE,
+      sourceId: finding.source_id || SOURCE_ID,
+      categoryId: finding.category_id ?? CATEGORY_ID,
+      rootId: finding.root_id ?? ROOT_ID,
+      title: finding.title,
+      summary: finding.summary,
+      content: finding.content,
+      methodology: finding.methodology || null,
+      confidence: finding.confidence || "preliminary",
+      tags: finding.tags || [],
+      sdgs: finding.sdgs || [],
+      geographicScope: finding.geographic_scope || [],
+      workflowId: step.workflow_id || null,
+      agentRole: ROLE,
+      tokensUsed: result.tokensUsed || 0,
+      costUsd: result.costUsd || 0,
+      kind: finding.kind || null,
+      payload: finding.payload || {},
+      spansRoots: finding.spans_roots || [],
+    });
+
+    const eventType = eventTypeForFindingEvent(finding);
+    const target = targetForFindingEvent(finding);
+    await postKnowledgeEvent(supabase, {
+      eventType,
+      sourceType: finding.source_type || SOURCE_TYPE,
+      sourceId: finding.source_id || SOURCE_ID,
+      categoryId: finding.category_id ?? CATEGORY_ID,
+      targetType: target.targetType,
+      targetId: target.targetId,
+      payload: {
+        finding_id: published.id,
+        title: finding.title,
+        summary: finding.summary,
+        kind: finding.kind || null,
+        ...(finding.payload || {}),
+      },
+    });
+  }
+
+  console.log(`[agent:${ROLE}] Published ${findings.length} structured finding(s) to the world tree`);
+}
+
 // ── Step execution ──────────────────────────────────────────────────────
 
 async function executeStep(step, systemPrompt, sessionContext, llmOpts = {}) {
@@ -388,6 +508,11 @@ async function agentLoop(sessionId, soul, mission, sessionContext, agentConfig) 
       await completeStep(step.id, { content: result.content });
 
       writeArtifact(step.task, result.content);
+      try {
+        await publishStructuredFindings(result.content, step, result);
+      } catch (err) {
+        console.warn(`[agent:${ROLE}] Failed to publish structured finding(s): ${err.message}`);
+      }
 
       await recordRun(
         `${step.workflow_name}/${step.task.slice(0, 50)}`,
