@@ -428,6 +428,7 @@ async function main() {
   assert(tensions?.[0]?.confidence === "contested", "generated tension is marked contested");
   assert(tensions?.[0]?.payload?.positions?.length === 2, "generated tension links both position findings");
 
+
   // ── Cleanup ──────────────────────────────────────────────────────
   await cleanup();
 
