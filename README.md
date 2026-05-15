@@ -303,10 +303,15 @@ cd infrastructure/gateway && npm ci && npm test   # RBAC, tool registry
 SUPABASE_URL=https://xxx.supabase.co \
 SUPABASE_SERVICE_ROLE_KEY=eyJ... \
 node infrastructure/scripts/test-vertical-slice.js
+
+# Offline smoke test for local/CI validation without Supabase credentials
+cd infrastructure/scripts && npm run test:vertical-slice:dry
 ```
 
 Exercises the full pipeline: seed publish, category validate, promote, root
-acknowledge, context assembly read-back.
+acknowledge, context assembly read-back. The dry-run mode uses an in-memory
+Supabase adapter so handler and query wiring can be validated without touching
+the shared project.
 
 ---
 

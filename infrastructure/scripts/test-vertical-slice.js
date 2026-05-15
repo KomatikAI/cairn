@@ -15,6 +15,9 @@
  *   SUPABASE_URL=https://xxx.supabase.co \
  *   SUPABASE_SERVICE_ROLE_KEY=eyJ... \
  *   node infrastructure/scripts/test-vertical-slice.js
+ *
+ * Offline smoke test:
+ *   node infrastructure/scripts/test-vertical-slice.js --dry-run
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -23,12 +26,14 @@ import {
   publishFinding,
   queryTreeFindings,
 } from "@komatik/shared/supabase";
+import { createDryRunSupabase } from "./lib/dry-run-supabase.js";
 
+const DRY_RUN = process.argv.includes("--dry-run") || process.env.VERTICAL_SLICE_DRY_RUN === "1";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars");
+if (!DRY_RUN && (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY)) {
+  console.error("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars, or pass --dry-run");
   process.exit(1);
 }
 
@@ -42,9 +47,11 @@ process.env.ROOT_ID ??= "basic-needs";
 
 const { HANDLERS } = await import("@komatik/event-processor");
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const supabase = DRY_RUN
+  ? createDryRunSupabase()
+  : createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
 const TEST_TAG = "e2e-test-" + Date.now();
 const cleanup = {
@@ -247,7 +254,7 @@ async function cleanupTestData() {
 
 async function main() {
   console.log("=== Yggdrasil Vertical Slice E2E Test ===");
-  console.log(`Supabase: ${SUPABASE_URL}`);
+  console.log(`Supabase: ${DRY_RUN ? "dry-run in-memory adapter" : SUPABASE_URL}`);
   console.log(`Test tag: ${TEST_TAG}`);
 
   try {
