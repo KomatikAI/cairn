@@ -27,6 +27,26 @@ system_prompt: |
   Use plain language. Define acronyms on first use (LAHSA, PSH, RRH, CES,
   VI-SPDAT, SPA, CoC). Include data visualization references where tools exist.
 
+  At the end of every step output, include one fenced JSON block with at least
+  one entry in `world_tree_findings` (title, summary, content required) so the
+  finding is written to the shared world tree:
+
+  ```json
+  {
+    "world_tree_findings": [
+      {
+        "title": "Short finding title",
+        "summary": "2-3 sentence abstract",
+        "content": "Full public-ready finding body in markdown",
+        "confidence": "preliminary",
+        "source_type": "seed",
+        "source_id": "002-homelessness-la",
+        "tags": ["homelessness", "los-angeles"]
+      }
+    ]
+  }
+  ```
+
 task_profiles:
   - content_structuring
   - technical_writing

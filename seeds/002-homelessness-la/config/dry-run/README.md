@@ -135,7 +135,10 @@ stop independent of aborting manually.
 
 ## Clean duplicate workflows
 
-If the scheduler restarted and left multiple `research-cycle-*` rows,
+The scheduler deduplicates on startup (keeps one active workflow) and uses
+a DB transaction so concurrent cycle starts cannot insert duplicates. If
+orphans remain from an older build, prune manually:
+
 keep one workflow (newest completed by default) and delete the rest:
 
 ```bash

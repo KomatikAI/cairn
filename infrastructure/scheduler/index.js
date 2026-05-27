@@ -23,6 +23,7 @@
 
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
+import { consolidateDuplicateActiveWorkflows as consolidateActiveWorkflows } from "./dedup.js";
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://gateway:18789";
 const CYCLE_INTERVAL_MS = parseInt(process.env.CYCLE_INTERVAL_MINUTES || "60", 10) * 60 * 1000;
@@ -59,6 +60,10 @@ export function parseCycleSteps(value = process.env.CYCLE_STEPS) {
 
 const CYCLE_STEPS = parseCycleSteps();
 
+/** Prevents overlapping runCycle() calls in a single scheduler process. */
+let cycleInProgress = false;
+let cycleIntervalId = null;
+
 // ── Gateway readiness ───────────────────────────────────────────────────
 
 async function waitForGateway(maxRetries = 60, intervalMs = 5000) {
@@ -77,10 +82,14 @@ async function waitForGateway(maxRetries = 60, intervalMs = 5000) {
 
 async function shouldStartNewCycle() {
   const running = await pool.query(
-    "SELECT id, name, status FROM workflows WHERE status IN ('pending', 'running') ORDER BY created_at DESC LIMIT 1"
+    `SELECT count(*)::int AS n, min(name) AS name
+     FROM workflows WHERE status IN ('pending', 'running')`
   );
-  if (running.rows.length > 0) {
-    console.log(`[scheduler] Skipping — workflow '${running.rows[0].name}' is still ${running.rows[0].status}`);
+  const activeCount = running.rows[0]?.n ?? 0;
+  if (activeCount > 0) {
+    console.log(
+      `[scheduler] Skipping — ${activeCount} workflow(s) still active (e.g. '${running.rows[0].name}')`
+    );
     return false;
   }
 
@@ -99,43 +108,71 @@ async function shouldStartNewCycle() {
   return true;
 }
 
+export async function consolidateDuplicateActiveWorkflows(db = pool) {
+  return consolidateActiveWorkflows(db);
+}
+
 // ── Workflow creation ───────────────────────────────────────────────────
 
-async function createCycleWorkflow() {
-  const cycleNumber = parseInt(
-    (await pool.query("SELECT COUNT(*) FROM workflows")).rows[0].count
-  ) + 1;
+/**
+ * Create a cycle workflow inside a transaction so concurrent schedulers
+ * (or overlapping runCycle calls) cannot insert duplicates.
+ * Returns null if another active workflow already exists.
+ */
+export async function createCycleWorkflow(db = pool) {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
 
-  const result = await pool.query(
-    `INSERT INTO workflows (name, description, created_by, status, context)
-     VALUES ($1, $2, 'scheduler', 'pending', $3)
-     RETURNING id`,
-    [
-      `research-cycle-${cycleNumber}`,
-      `Automated research cycle #${cycleNumber}`,
-      JSON.stringify({ cycle: cycleNumber, started: new Date().toISOString() }),
-    ]
-  );
-  const workflowId = result.rows[0].id;
-
-  const stepIds = [];
-  for (let i = 0; i < CYCLE_STEPS.length; i++) {
-    const step = CYCLE_STEPS[i];
-    const depends = i > 0 ? [stepIds[i - 1]] : [];
-    const stepResult = await pool.query(
-      `INSERT INTO workflow_steps (workflow_id, step_order, agent_id, task, depends_on, status)
-       VALUES ($1, $2, $3, $4, $5, 'pending')
-       RETURNING id`,
-      [workflowId, i + 1, step.agent_id, step.task, depends]
+    const existing = await client.query(
+      `SELECT id FROM workflows WHERE status IN ('pending', 'running') LIMIT 1 FOR UPDATE`
     );
-    stepIds.push(stepResult.rows[0].id);
-  }
+    if (existing.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return null;
+    }
 
-  console.log(
-    `[scheduler] Created workflow ${workflowId} — cycle #${cycleNumber} ` +
-      `(${CYCLE_STEPS.map((step) => step.agent_id).join(" → ")})`
-  );
-  return workflowId;
+    const cycleNumber =
+      parseInt((await client.query("SELECT COUNT(*) FROM workflows")).rows[0].count, 10) + 1;
+
+    const result = await client.query(
+      `INSERT INTO workflows (name, description, created_by, status, context)
+       VALUES ($1, $2, 'scheduler', 'pending', $3)
+       RETURNING id`,
+      [
+        `research-cycle-${cycleNumber}`,
+        `Automated research cycle #${cycleNumber}`,
+        JSON.stringify({ cycle: cycleNumber, started: new Date().toISOString() }),
+      ]
+    );
+    const workflowId = result.rows[0].id;
+
+    const stepIds = [];
+    for (let i = 0; i < CYCLE_STEPS.length; i++) {
+      const step = CYCLE_STEPS[i];
+      const depends = i > 0 ? [stepIds[i - 1]] : [];
+      const stepResult = await client.query(
+        `INSERT INTO workflow_steps (workflow_id, step_order, agent_id, task, depends_on, status)
+         VALUES ($1, $2, $3, $4, $5, 'pending')
+         RETURNING id`,
+        [workflowId, i + 1, step.agent_id, step.task, depends]
+      );
+      stepIds.push(stepResult.rows[0].id);
+    }
+
+    await client.query("COMMIT");
+
+    console.log(
+      `[scheduler] Created workflow ${workflowId} — cycle #${cycleNumber} ` +
+        `(${CYCLE_STEPS.map((step) => step.agent_id).join(" → ")})`
+    );
+    return workflowId;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 // ── Step retry logic ────────────────────────────────────────────────────
@@ -293,12 +330,22 @@ async function signalPublisher(workflowId, missionStepId) {
 // ── Main cycle ──────────────────────────────────────────────────────────
 
 async function runCycle() {
+  if (cycleInProgress) {
+    console.log("[scheduler] Skipping — cycle already in progress in this process");
+    return;
+  }
+
+  cycleInProgress = true;
   console.log(`[scheduler] Starting new research cycle...`);
 
-  if (!(await shouldStartNewCycle())) return;
-
   try {
+    if (!(await shouldStartNewCycle())) return;
+
     const workflowId = await createCycleWorkflow();
+    if (!workflowId) {
+      console.log("[scheduler] Skipping — active workflow exists (transaction dedup)");
+      return;
+    }
 
     await pool.query(
       "UPDATE workflows SET status = 'running', updated_at = now() WHERE id = $1",
@@ -309,10 +356,14 @@ async function runCycle() {
     console.log(`[scheduler] Cycle finished: ${result}`);
   } catch (err) {
     console.error(`[scheduler] Cycle failed:`, err.message);
+  } finally {
+    cycleInProgress = false;
   }
 }
 
 async function resumeRunningWorkflow() {
+  await consolidateDuplicateActiveWorkflows();
+
   const running = await pool.query(
     "SELECT id, name, status FROM workflows WHERE status IN ('pending', 'running') ORDER BY created_at DESC LIMIT 1"
   );
@@ -338,15 +389,18 @@ async function main() {
   await waitForGateway();
   console.log(`[scheduler] Gateway is healthy`);
 
+  await consolidateDuplicateActiveWorkflows();
+
   const resumed = await resumeRunningWorkflow();
   if (!resumed) {
     await runCycle();
   }
 
-  setInterval(runCycle, CYCLE_INTERVAL_MS);
+  cycleIntervalId = setInterval(runCycle, CYCLE_INTERVAL_MS);
 
   process.on("SIGTERM", async () => {
     console.log("[scheduler] Shutting down...");
+    if (cycleIntervalId) clearInterval(cycleIntervalId);
     await pool.end();
     process.exit(0);
   });
