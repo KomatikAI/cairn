@@ -53,7 +53,7 @@ services:
   # TODO: housing category event-processor (validates finding_ready → promoted)
   # Requires build context infrastructure/ (see event-processor/Dockerfile).
   # event-processor:
-  #   build:
+  #   build:                          # context = infrastructure/ (--project-directory)
   #     context: .
   #     dockerfile: event-processor/Dockerfile
   #   container_name: housing-event-processor
