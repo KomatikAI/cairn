@@ -320,6 +320,7 @@ bash infrastructure/scripts/preflight-seed-dry-run.sh
 ### Vertical Slice Test
 
 ```bash
+# Requires the Cairn world-tree Supabase project (see infrastructure/supabase/migrations/README.md)
 SUPABASE_URL=https://xxx.supabase.co \
 SUPABASE_SERVICE_ROLE_KEY=eyJ... \
 node infrastructure/scripts/test-vertical-slice.js
