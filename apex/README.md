@@ -38,7 +38,7 @@ Agent configs live under [config/agents/](config/agents/).
 ## Boot
 
 ```bash
-docker compose --project-directory . \
+docker compose --project-directory infrastructure \
   -f infrastructure/compose.yaml \
   -f apex/config/compose.override.yaml up
 ```

@@ -400,6 +400,6 @@ Yggdrasil runs on the same agent infrastructure that powers Komatik's
 commercial platform — the same orchestration engine, the same operational
 framework. The technology is identical; only the mission differs.
 
-- **Website**: [yggdrasil.komatik.xyz](https://yggdrasil.komatik.xyz)
+- **Website**: [cairn.komatik.xyz](https://cairn.komatik.xyz) (legacy [yggdrasil.komatik.xyz](https://yggdrasil.komatik.xyz) redirects)
 - **Parent**: [komatik.ai](https://komatik.ai)
 - **Agent Infrastructure**: [OpenClaw](https://github.com/dschirmer-shiftkey/komatik-agents)
