@@ -372,7 +372,7 @@ function eventTypeForFinding(finding) {
     case "mission_drift_flag":
       return "mission_drift_flagged";
     default:
-      return "knowledge_available";
+      return SOURCE_TYPE === "seed" ? "finding_ready" : "knowledge_available";
   }
 }
 
@@ -387,8 +387,32 @@ function targetForFindingEvent(finding) {
   return { targetType: null, targetId: null };
 }
 
+const STRUCTURED_FINDING_ROLES = new Set([
+  "synthesis",
+  "documentation",
+  "research",
+]);
+
+const FINDING_CONFIDENCE = new Set([
+  "preliminary",
+  "validated",
+  "superseded",
+  "retracted",
+  "contested",
+  "informational",
+]);
+
+function normalizeFindingConfidence(value) {
+  if (!value) return "preliminary";
+  const normalized = String(value).toLowerCase();
+  if (FINDING_CONFIDENCE.has(normalized)) return normalized;
+  if (normalized === "high") return "validated";
+  if (normalized === "medium" || normalized === "low") return "preliminary";
+  return "preliminary";
+}
+
 async function publishStructuredFindings(content, step, result) {
-  if (ROLE !== "synthesis") return;
+  if (!STRUCTURED_FINDING_ROLES.has(ROLE)) return;
 
   const findings = extractStructuredFindings(content, {
     onInvalid: (err) => console.warn(`[agent:${ROLE}] Ignoring invalid JSON block: ${err.message}`),
@@ -416,7 +440,7 @@ async function publishStructuredFindings(content, step, result) {
       summary: finding.summary,
       content: finding.content,
       methodology: finding.methodology || null,
-      confidence: finding.confidence || "preliminary",
+      confidence: normalizeFindingConfidence(finding.confidence),
       tags: finding.tags || [],
       sdgs: finding.sdgs || [],
       geographicScope: finding.geographic_scope || [],
@@ -429,7 +453,7 @@ async function publishStructuredFindings(content, step, result) {
       spansRoots: finding.spans_roots || [],
     });
 
-    const eventType = eventTypeForFindingEvent(finding);
+    const eventType = eventTypeForFinding(finding);
     const target = targetForFindingEvent(finding);
     await postKnowledgeEvent(supabase, {
       eventType,
