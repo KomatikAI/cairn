@@ -21,13 +21,13 @@ jobs:
     name: Deployment Gate
     runs-on: ubuntu-latest
     steps:
-      - uses: KomatikAI/trailhead@v4
+      - uses: KomatikAI/trailhead@v4.3.0
         id: gate
         with:
           risk-threshold: "80"
           warn-threshold: "40"
           add-risk-labels: "true"
-          evaluation-store-url: "https://komatik.ai/api/deployguard/store"
+          evaluation-store-url: "https://komatik.ai/api/trailhead/store"
           evaluation-store-secret: ${{ secrets.INTERNAL_API_SECRET }}
           dora-metrics: "true"
           dora-environment: "github-pages"
