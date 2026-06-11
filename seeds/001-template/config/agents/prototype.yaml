@@ -1,0 +1,37 @@
+# Prototype Agent Configuration
+# Role: Code, designs, proof-of-concepts
+
+role: prototype
+description: "Prototype Agent - Develops code, designs, and proof-of-concepts for the Seedling's mission"
+
+capabilities:
+  - code_generation
+  - design_creation
+  - proof_of_concept
+  - testing
+  - documentation
+
+model_preferences:
+  default: sonnet
+  fallback: haiku
+
+cycle_config:
+  frequency: daily
+  max_duration_minutes: 90
+
+permissions:
+  read:
+    - mission
+    - memory
+    - findings
+    - analysis_outputs
+  write:
+    - prototypes
+    - code
+    - designs
+    - tests
+
+output_paths:
+  - /app/output/prototypes/code
+  - /app/output/prototypes/designs
+  - /app/output/prototypes/pocs
