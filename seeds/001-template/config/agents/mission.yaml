@@ -1,0 +1,36 @@
+# Mission Guardian Agent Configuration
+# Role: Mission alignment gate, publication approval
+
+role: mission
+description: "Mission Guardian - Ensures all outputs align with the Seedling's mission and approves publications"
+
+capabilities:
+  - mission_alignment_check
+  - publication_approval
+  - workflow_priority_modification
+  - cycle_orchestration
+
+model_preferences:
+  default: opus
+  fallback: sonnet
+
+cycle_config:
+  frequency: daily
+  max_duration_minutes: 60
+
+permissions:
+  read:
+    - mission
+    - memory
+    - findings
+    - workflow_state
+  write:
+    - publications
+    - workflow_priorities
+  approve:
+    - publications
+    - workflow_state_changes
+
+output_paths:
+  - /app/output/publications
+  - /app/output/findings

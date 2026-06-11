@@ -78,6 +78,30 @@ async function waitForGateway(maxRetries = 60, intervalMs = 5000) {
   throw new Error("Gateway did not become healthy");
 }
 
+// ── Budget guard ───────────────────────────────────────────────────────
+
+/**
+ * Check monthly spend before dispatching agents.
+ * Guards against Bifrost's hierarchical key enforcement being incomplete.
+ * @param {Pool} pool - PostgreSQL connection pool
+ * @returns {Promise<boolean>} - true if budget OK, false if cap reached
+ */
+async function checkMonthlyBudget(pool) {
+  const cap = parseFloat(process.env.MONTHLY_BUDGET_CAP || '50');
+  const { rows } = await pool.query(
+    `SELECT COALESCE(SUM(cost_usd), 0) as total_spend
+     FROM agent_runs
+     WHERE created_at > date_trunc('month', now())`
+  );
+  const spent = parseFloat(rows[0].total_spend);
+  if (spent >= cap) {
+    console.log(`[scheduler] Monthly budget cap reached: $${spent.toFixed(4)} >= $${cap.toFixed(2)} — skipping cycle`);
+    return false;
+  }
+  console.log(`[scheduler] Budget OK: $${spent.toFixed(4)} / $${cap.toFixed(2)}`);
+  return true;
+}
+
 // ── Dedup check ─────────────────────────────────────────────────────────
 
 async function shouldStartNewCycle() {
@@ -339,6 +363,10 @@ async function runCycle() {
   console.log(`[scheduler] Starting new research cycle...`);
 
   try {
+    // Application-layer budget ceiling — inside try so the finally below
+    // releases cycleInProgress when the cap skips the cycle.
+    if (!(await checkMonthlyBudget(pool))) return;
+
     if (!(await shouldStartNewCycle())) return;
 
     const workflowId = await createCycleWorkflow();

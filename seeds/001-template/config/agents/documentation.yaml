@@ -1,0 +1,37 @@
+# Documentation Agent Configuration
+# Role: Public-facing outputs, FINDINGS.md
+
+role: documentation
+description: "Documentation Agent - Creates public-facing outputs and maintains FINDINGS.md"
+
+capabilities:
+  - technical_writing
+  - public_communications
+  - documentation
+  - publication_preparation
+
+model_preferences:
+  default: sonnet
+  fallback: haiku
+
+cycle_config:
+  frequency: daily
+  max_duration_minutes: 45
+
+permissions:
+  read:
+    - mission
+    - memory
+    - findings
+    - research_outputs
+    - analysis_outputs
+    - prototypes
+  write:
+    - documentation
+    - publications
+    - findings
+
+output_paths:
+  - /app/output/documentation/findings.md
+  - /app/output/documentation/reports
+  - /app/output/documentation/publications
