@@ -1,0 +1,36 @@
+# Community Agent Configuration
+# Role: External contribution triage, PR review
+
+role: community
+description: "Community Agent - Triages external contributions and reviews pull requests"
+
+capabilities:
+  - issue_triage
+  - pr_review
+  - community_engagement
+  - feedback_synthesis
+
+model_preferences:
+  default: sonnet
+  fallback: haiku
+
+cycle_config:
+  frequency: daily
+  max_duration_minutes: 60
+
+permissions:
+  read:
+    - mission
+    - memory
+    - findings
+    - issues
+    - pull_requests
+  write:
+    - issue_comments
+    - pr_reviews
+    - community_feedback
+
+output_paths:
+  - /app/output/community/issues
+  - /app/output/community/prs
+  - /app/output/community/feedback

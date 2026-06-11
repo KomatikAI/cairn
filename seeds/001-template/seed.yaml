@@ -1,0 +1,47 @@
+# Seed 001 Template Configuration
+# This is a template for creating new Seedling instances
+
+name: Template
+slug: 001-template
+category: general-purpose
+status: template
+
+description: >
+  Template Seedling for the Komatik Cairn charitable AI initiative.
+  Use this as a starting point for creating new seed instances.
+
+created_at: "2026-05-28"
+updated_at: "2026-05-28"
+
+# Agent roles included in this seed
+agents:
+  - mission
+  - research
+  - analysis
+  - prototype
+  - documentation
+  - community
+
+# Budget configuration (referenced in bifrost.json)
+budget:
+  dryrun:
+    virtual_key: svk-template-dryrun
+    monthly_limit: 5.00
+  production:
+    virtual_key: svk-template-prod
+    monthly_limit: 50.00
+
+# Configuration paths
+config:
+  bifrost: seeds/001-template/config/bifrost.json
+  compose_override: seeds/001-template/config/compose.override.yaml
+  agents_dir: seeds/001-template/config/agents
+
+# Output directories
+outputs:
+  research: seeds/001-template/output/research
+  analysis: seeds/001-template/output/analysis
+  prototypes: seeds/001-template/output/prototypes
+  documentation: seeds/001-template/output/documentation
+  community: seeds/001-template/output/community
+  publications: seeds/001-template/output/publications

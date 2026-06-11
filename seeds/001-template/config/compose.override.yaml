@@ -1,0 +1,70 @@
+# Seed 001 Template — Docker Compose Override
+#
+# Extends the base infrastructure/compose.yaml with Template-specific config.
+#
+# Usage (from repo root):
+#   docker compose --project-directory infrastructure \
+#     -f infrastructure/compose.yaml \
+#     -f seeds/001-template/config/compose.override.yaml up
+#
+# Bind-mount paths below are relative to the project directory
+# (--project-directory infrastructure), so `../seeds/...` resolves to
+# repo_root/seeds/...
+
+services:
+  agent-mission:
+    environment:
+      - SEED_NAME=Template
+    volumes:
+      - ../seeds/001-template/MISSION.md:/workspace/mission/MISSION.md:ro
+      - ./agent/souls/mission.md:/workspace/souls/mission.md:ro
+      - ../seeds/001-template/config/agents/mission.yaml:/workspace/config/agent.yaml:ro
+
+  agent-research:
+    environment:
+      - SEED_NAME=Template
+    volumes:
+      - ../seeds/001-template/MISSION.md:/workspace/mission/MISSION.md:ro
+      - ./agent/souls/research.md:/workspace/souls/research.md:ro
+      - ../seeds/001-template/config/agents/research.yaml:/workspace/config/agent.yaml:ro
+
+  agent-analysis:
+    environment:
+      - SEED_NAME=Template
+    volumes:
+      - ../seeds/001-template/MISSION.md:/workspace/mission/MISSION.md:ro
+      - ./agent/souls/analysis.md:/workspace/souls/analysis.md:ro
+      - ../seeds/001-template/config/agents/analysis.yaml:/workspace/config/agent.yaml:ro
+
+  agent-prototype:
+    environment:
+      - SEED_NAME=Template
+    volumes:
+      - ../seeds/001-template/MISSION.md:/workspace/mission/MISSION.md:ro
+      - ./agent/souls/prototype.md:/workspace/souls/prototype.md:ro
+      - ../seeds/001-template/config/agents/prototype.yaml:/workspace/config/agent.yaml:ro
+
+  agent-documentation:
+    environment:
+      - SEED_NAME=Template
+    volumes:
+      - ../seeds/001-template/MISSION.md:/workspace/mission/MISSION.md:ro
+      - ./agent/souls/documentation.md:/workspace/souls/documentation.md:ro
+      - ../seeds/001-template/config/agents/documentation.yaml:/workspace/config/agent.yaml:ro
+
+  agent-community:
+    environment:
+      - SEED_NAME=Template
+    volumes:
+      - ../seeds/001-template/MISSION.md:/workspace/mission/MISSION.md:ro
+      - ./agent/souls/community.md:/workspace/souls/community.md:ro
+      - ../seeds/001-template/config/agents/community.yaml:/workspace/config/agent.yaml:ro
+
+  publisher:
+    environment:
+      - SEED_NAME=Template
+      - SEED_DIR=seeds/001-template
+
+  bifrost:
+    volumes:
+      - ../seeds/001-template/config/bifrost.json:/app/config.template.json:ro

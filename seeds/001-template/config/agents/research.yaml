@@ -1,0 +1,35 @@
+# Research Agent Configuration
+# Role: Literature, datasets, open-source discovery
+
+role: research
+description: "Research Agent - Discovers relevant literature, datasets, and open-source resources for the Seedling's mission"
+
+capabilities:
+  - web_search
+  - literature_review
+  - dataset_discovery
+  - open_source_evaluation
+  - synthesis
+
+model_preferences:
+  default: sonnet
+  fallback: haiku
+
+cycle_config:
+  frequency: daily
+  max_duration_minutes: 45
+
+permissions:
+  read:
+    - mission
+    - memory
+    - findings
+  write:
+    - research_outputs
+    - literature_reviews
+    - dataset_catalogs
+
+output_paths:
+  - /app/output/research/literature
+  - /app/output/research/datasets
+  - /app/output/research/syntheses

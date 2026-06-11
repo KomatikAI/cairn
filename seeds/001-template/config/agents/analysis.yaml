@@ -1,0 +1,37 @@
+# Analysis Agent Configuration
+# Role: Modeling, simulation, impact quantification
+
+role: analysis
+description: "Analysis Agent - Performs modeling, simulation, and impact quantification for the Seedling's mission"
+
+capabilities:
+  - data_analysis
+  - statistical_modeling
+  - simulation
+  - impact_assessment
+  - visualization
+
+model_preferences:
+  default: sonnet
+  fallback: haiku
+
+cycle_config:
+  frequency: daily
+  max_duration_minutes: 60
+
+permissions:
+  read:
+    - mission
+    - memory
+    - findings
+    - research_outputs
+  write:
+    - analysis_outputs
+    - models
+    - simulations
+    - reports
+
+output_paths:
+  - /app/output/analysis/models
+  - /app/output/analysis/simulations
+  - /app/output/analysis/reports
