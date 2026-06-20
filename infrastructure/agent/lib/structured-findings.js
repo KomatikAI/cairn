@@ -32,3 +32,28 @@ export function extractStructuredFindings(content, opts = {}) {
     return [];
   });
 }
+
+/**
+ * Valid values for findings.source_type (mirrors the Supabase
+ * finding_source_type enum). Used to reject hallucinated values before they
+ * reach the database — agents occasionally invent values like
+ * "prototype_output" that would trigger an enum violation and drop the finding.
+ */
+export const FINDING_SOURCE_TYPES = new Set([
+  "seed",
+  "category",
+  "root",
+  "apex",
+  "public_signal",
+]);
+
+/**
+ * Normalize an agent-supplied source_type against the enum, falling back to the
+ * container's own source type when the value is missing or invalid.
+ */
+export function normalizeFindingSourceType(value, fallback) {
+  if (!value) return fallback;
+  const normalized = String(value).toLowerCase();
+  if (FINDING_SOURCE_TYPES.has(normalized)) return normalized;
+  return fallback;
+}
