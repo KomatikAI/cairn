@@ -21,6 +21,7 @@ const SOURCE_ID = process.env.SOURCE_ID || "";
 const SEED_MISSION = process.env.SEED_MISSION || "";
 const GROUNDING_QUERIES = parseInt(process.env.GROUNDING_QUERIES || "8", 10);
 const GROUNDING_CREDIT_CAP = parseInt(process.env.GROUNDING_CREDIT_CAP || "50", 10);
+const HIGHLIGHTS_CREDIT_COST = 5;
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS || "60000", 10);
 const RUN_ONCE = process.env.RUN_ONCE === "true";
 
@@ -137,17 +138,25 @@ export async function handleGroundingEvent(event) {
   const workflowId = event.payload?.workflow_id || null;
   try {
     const raw = await generateQueriesViaBifrost();
-    const queries = parseQueries(raw, fallbackQueries());
+    const queries = parseQueries(raw, fallbackQueries()).slice(0, GROUNDING_QUERIES);
     console.log(`[grounding] ${queries.length} queries for seed ${seedId}`);
 
     // For each query: search, take the top result, highlights-scrape it.
     const collected = [];
+    let creditsUsed = 0;
     for (const q of queries) {
+      if (creditsUsed + HIGHLIGHTS_CREDIT_COST > GROUNDING_CREDIT_CAP) {
+        console.log(`[grounding] credit cap ${GROUNDING_CREDIT_CAP} reached at ${creditsUsed} credits — stopping fetch`);
+        break;
+      }
       const results = await firecrawlSearch(q);
       const top = results[0];
       if (!top?.url) continue;
       const row = await firecrawlHighlights(top.url, q);
-      if (row && row.content) collected.push(row);
+      if (row && row.content) {
+        collected.push(row);
+        creditsUsed += row.credits_used || 0;
+      }
     }
 
     const deduped = dedupeByUrl(collected);
