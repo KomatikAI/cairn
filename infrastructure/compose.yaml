@@ -295,6 +295,8 @@ services:
       - GATEWAY_URL=http://gateway:18789
       - CYCLE_INTERVAL_MINUTES=${CYCLE_INTERVAL_MINUTES:-60}
       - DATABASE_URL=postgresql://seedling:${POSTGRES_PASSWORD}@db:5432/seedling
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     depends_on:
       gateway:
         condition: service_healthy
@@ -334,6 +336,41 @@ services:
     restart: unless-stopped
     networks:
       - backend-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+  # Research grounding service — Firecrawl /v2/search + /v2/scrape (highlights)
+  # produces seed_sources rows the agent context assembler reads as its 5th bucket.
+  # Triggered by `grounding_required` knowledge events emitted by the scheduler.
+  # See docs/superpowers/specs/2026-06-20-research-grounding-phase1-design.md
+  grounding:
+    build:
+      context: ./grounding
+      dockerfile: Dockerfile
+    container_name: seed-grounding
+    depends_on:
+      - bifrost
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SOURCE_ID=${SOURCE_ID}
+      - SEED_NAME=${SEED_NAME}
+      - SEED_MISSION=${SEED_NAME}
+      - BIFROST_URL=http://bifrost:8080
+      - SEED_VIRTUAL_KEY=${SEED_VIRTUAL_KEY}
+      - GROUNDED_QUERY_MODEL=${GROUNDED_QUERY_MODEL:-google/gemini-2.5-flash}
+      - CAIRN_FIRECRAWL_API_KEY=${CAIRN_FIRECRAWL_API_KEY}
+      - FIRECRAWL_URL=https://api.firecrawl.dev
+      - GROUNDING_QUERIES=${GROUNDING_QUERIES:-8}
+      - GROUNDING_CREDIT_CAP=${GROUNDING_CREDIT_CAP:-50}
+      - POLL_INTERVAL_MS=${GROUNDING_POLL_INTERVAL_MS:-60000}
+    restart: unless-stopped
+    networks:
+      - backend-net
+      - agent-net
     deploy:
       resources:
         limits:
