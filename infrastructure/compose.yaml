@@ -288,8 +288,8 @@ services:
 
   scheduler:
     build:
-      context: ./scheduler
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: scheduler/Dockerfile
     container_name: seed-scheduler
     environment:
       - GATEWAY_URL=http://gateway:18789
@@ -348,8 +348,8 @@ services:
   # See docs/superpowers/specs/2026-06-20-research-grounding-phase1-design.md
   grounding:
     build:
-      context: ./grounding
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: grounding/Dockerfile
     container_name: seed-grounding
     depends_on:
       - bifrost
