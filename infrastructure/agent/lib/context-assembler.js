@@ -270,7 +270,7 @@ async function loadTreeKnowledge() {
   } catch { /* non-fatal */ }
 
   try {
-    const [findings, routedWork] = await Promise.all([
+    const [findings, routedWork, seedSources] = await Promise.all([
       categoryId && rootId
         ? mod.queryTreeFindings(supabase, {
             categoryId,
@@ -282,9 +282,12 @@ async function loadTreeKnowledge() {
       target && mod.queryRoutedWork
         ? mod.queryRoutedWork(supabase, target)
         : Promise.resolve([]),
+      mod.querySeedSources
+        ? mod.querySeedSources(supabase, { seedId: sourceId })
+        : Promise.resolve([]),
     ]);
 
-    return [formatRoutedWork(routedWork), formatTreeKnowledge(findings)]
+    return [formatRoutedWork(routedWork), formatTreeKnowledge(findings), formatSeedSources(seedSources)]
       .filter(Boolean)
       .join("\n");
   } catch (err) {
@@ -382,6 +385,19 @@ function formatTreeKnowledge(results) {
     "> Knowledge from the shared world tree (Supabase). " +
     "Read before researching to avoid duplication.\n\n" +
     sections.join("\n") + "\n";
+}
+
+export function formatSeedSources(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return "";
+  let md = "### Grounded Sources (this cycle)\n\n";
+  md += "> Real sources gathered via Firecrawl. Cite these by URL.\n";
+  md += "> Highlights excerpts are verbatim from the source page — quote, don't paraphrase.\n\n";
+  for (const s of rows) {
+    md += `- **${s.title || s.url}** — ${s.url}\n`;
+    const excerpt = String(s.content || "").replace(/\s+/g, " ").trim().slice(0, 400);
+    if (excerpt) md += `  > ${excerpt}\n`;
+  }
+  return md;
 }
 
 // ── Category Context ───────────────────────────────────────────────────
