@@ -278,7 +278,7 @@ async function callOpenRouterDirect(systemPrompt, userPrompt, opts = {}) {
     throw new Error("OPENROUTER_API_KEY is required for BIFROST_USE_OPENROUTER_DIRECT");
   }
 
-  let model = opts.model || "google/gemini-2.0-flash-001";
+  let model = opts.model || "google/gemini-2.5-flash";
   if (model.startsWith("openrouter/")) {
     model = model.slice("openrouter/".length);
   }
