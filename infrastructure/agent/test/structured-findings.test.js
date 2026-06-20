@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { extractStructuredFindings, parseJsonBlocks } from "../lib/structured-findings.js";
+import {
+  extractStructuredFindings,
+  parseJsonBlocks,
+  normalizeFindingSourceType,
+  FINDING_SOURCE_TYPES,
+} from "../lib/structured-findings.js";
 
 test("parseJsonBlocks accepts markdown fences of three or more backticks", () => {
   const blocks = parseJsonBlocks([
@@ -59,4 +64,15 @@ test("extractStructuredFindings supports world_tree_findings, findings, and sing
     extractStructuredFindings(content).map((finding) => finding.title),
     ["World", "Findings", "Single"]
   );
+});
+
+test("normalizeFindingSourceType accepts valid enum values and falls back on invalid/missing", () => {
+  assert.equal(normalizeFindingSourceType("seed"), "seed");
+  assert.equal(normalizeFindingSourceType("Category"), "category");
+  assert.equal(normalizeFindingSourceType("apex"), "apex");
+  assert.equal(normalizeFindingSourceType("public_signal"), "public_signal");
+  assert.equal(normalizeFindingSourceType("prototype_output", "seed"), "seed");
+  assert.equal(normalizeFindingSourceType(undefined, "seed"), "seed");
+  assert.equal(normalizeFindingSourceType("", "seed"), "seed");
+  assert.equal(FINDING_SOURCE_TYPES.has("seed"), true);
 });

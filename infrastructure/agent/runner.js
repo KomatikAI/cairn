@@ -38,7 +38,7 @@ import { Pool } from "pg";
 import yaml from "js-yaml";
 import { assembleContext } from "./lib/context-assembler.js";
 import { logDecision } from "./lib/decisions.js";
-import { extractStructuredFindings } from "./lib/structured-findings.js";
+import { extractStructuredFindings, normalizeFindingSourceType } from "./lib/structured-findings.js";
 import { getSupabase, publishFinding, postKnowledgeEvent } from "@komatik/shared/supabase";
 
 const ROLE = process.env.AGENT_ROLE;
@@ -432,7 +432,7 @@ async function publishStructuredFindings(content, step, result) {
     }
 
     const published = await publishFinding(supabase, {
-      sourceType: finding.source_type || SOURCE_TYPE,
+      sourceType: normalizeFindingSourceType(finding.source_type, SOURCE_TYPE),
       sourceId: finding.source_id || SOURCE_ID,
       categoryId: finding.category_id ?? CATEGORY_ID,
       rootId: finding.root_id ?? ROOT_ID,
@@ -457,7 +457,7 @@ async function publishStructuredFindings(content, step, result) {
     const target = targetForFindingEvent(finding);
     await postKnowledgeEvent(supabase, {
       eventType,
-      sourceType: finding.source_type || SOURCE_TYPE,
+      sourceType: normalizeFindingSourceType(finding.source_type, SOURCE_TYPE),
       sourceId: finding.source_id || SOURCE_ID,
       categoryId: finding.category_id ?? CATEGORY_ID,
       targetType: target.targetType,
