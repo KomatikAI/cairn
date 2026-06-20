@@ -24,9 +24,10 @@
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { consolidateDuplicateActiveWorkflows as consolidateActiveWorkflows } from "./dedup.js";
+import { computeCycleIntervalMs } from "./interval.js";
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://gateway:18789";
-const CYCLE_INTERVAL_MS = parseInt(process.env.CYCLE_INTERVAL_MINUTES || "60", 10) * 60 * 1000;
+const CYCLE_INTERVAL_MS = computeCycleIntervalMs(process.env.CYCLE_INTERVAL_MINUTES);
 const STEP_POLL_INTERVAL_MS = 15_000;
 const MAX_STEP_RETRIES = 2;
 const MAX_WORKFLOW_FAILURES = 5;
