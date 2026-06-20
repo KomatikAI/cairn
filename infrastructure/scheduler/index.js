@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { consolidateDuplicateActiveWorkflows as consolidateActiveWorkflows } from "./dedup.js";
 import { computeCycleIntervalMs } from "./interval.js";
+import { getSupabase, postKnowledgeEvent } from "@komatik/shared/supabase";
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://gateway:18789";
 const CYCLE_INTERVAL_MS = computeCycleIntervalMs(process.env.CYCLE_INTERVAL_MINUTES);
@@ -186,6 +187,29 @@ export async function createCycleWorkflow(db = pool) {
     }
 
     await client.query("COMMIT");
+
+    // Fire-and-forget: tell the grounding service to gather sources for this cycle.
+    // Non-fatal — a Supabase outage must not prevent cycle creation (proceed-gracefully).
+    try {
+      const supabase = getSupabase();
+      if (supabase) {
+        await postKnowledgeEvent(supabase, {
+          eventType: "grounding_required",
+          sourceType: "seed",
+          sourceId: process.env.SOURCE_ID || "unknown",
+          categoryId: process.env.CATEGORY_ID || null,
+          targetType: "grounding",
+          targetId: process.env.SOURCE_ID || "unknown",
+          payload: {
+            workflow_id: workflowId,
+            cycle: cycleNumber,
+            mission: process.env.SEED_NAME || "",
+          },
+        });
+      }
+    } catch (emitErr) {
+      console.warn(`[scheduler] grounding_required emit failed (non-fatal): ${emitErr.message}`);
+    }
 
     console.log(
       `[scheduler] Created workflow ${workflowId} — cycle #${cycleNumber} ` +

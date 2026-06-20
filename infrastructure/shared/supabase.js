@@ -285,3 +285,25 @@ export async function queryTreeFindings(supabase, {
 
   return results;
 }
+
+/**
+ * Query recently-scraped seed sources for research grounding.
+ * Returns an empty array on any error or missing input (swallow-error
+ * pattern) so callers degrade gracefully without a try/catch.
+ */
+export async function querySeedSources(supabase, { seedId, limit = 50, maxAgeDays = 7 } = {}) {
+  if (!supabase || !seedId) return [];
+  const since = new Date(Date.now() - maxAgeDays * 86_400_000).toISOString();
+  let query = supabase
+    .from("seed_sources")
+    .select("id, query, url, title, content, format, match_query, scraped_at, credits_used")
+    .eq("seed_id", seedId)
+    .gte("scraped_at", since)
+    .order("scraped_at", { ascending: false });
+
+  if (typeof limit === "number") query = query.limit(limit);
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+  return data;
+}

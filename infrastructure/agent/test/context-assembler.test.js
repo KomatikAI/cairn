@@ -8,6 +8,7 @@ import {
   getBudgetForRole,
   loadCategoryFindings,
   formatRoutedWork,
+  formatSeedSources,
 } from "../lib/context-assembler.js";
 
 describe("loadContextBudget", () => {
@@ -125,5 +126,22 @@ describe("formatRoutedWork", () => {
 
   it("returns empty string with no routed work", () => {
     assert.equal(formatRoutedWork([]), "");
+  });
+});
+
+describe("formatSeedSources", () => {
+  it("returns '' when there are no rows", () => {
+    assert.equal(formatSeedSources([]), "");
+  });
+
+  it("renders each source with its URL and a trimmed excerpt", () => {
+    const rows = [
+      { url: "https://lahsa.org/pit", title: "LAHSA PIT 2024", content: "Point-in-Time count rose 2%.", format: "highlights" },
+    ];
+    const out = formatSeedSources(rows);
+    assert.ok(out.includes("https://lahsa.org/pit"));
+    assert.ok(out.includes("LAHSA PIT 2024"));
+    assert.ok(out.includes("Point-in-Time count rose 2%."));
+    assert.ok(out.includes("Grounded Sources"));
   });
 });

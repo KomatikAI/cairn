@@ -1,0 +1,18 @@
+{
+  "name": "@komatik/grounding",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Research grounding service — Firecrawl search + highlights, writes seed_sources for the agent context assembler",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test \"test/*.test.js\"",
+    "test:once": "RUN_ONCE=true node index.js"
+  },
+  "dependencies": {
+    "@komatik/shared": "file:../shared",
+    "@supabase/supabase-js": "^2.49.0"
+  },
+  "engines": { "node": ">=22" }
+}
