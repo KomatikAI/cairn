@@ -5,6 +5,9 @@
   },
   "providers": {
     "openrouter": {
+      "network_config": {
+        "default_request_timeout_in_seconds": 180
+      },
       "keys": [
         {
           "name": "openrouter-dry-run",
