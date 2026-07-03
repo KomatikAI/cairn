@@ -1,0 +1,32 @@
+sensitivity:
+  high:
+    - "infrastructure/**"
+    - "**/auth/**"
+  medium:
+    - "web/**"
+    - "apex/**"
+    - "roots/**"
+    - "seeds/**"
+    - "categories/**"
+    - "proposals/**"
+  low:
+    - "docs/**"
+    - "*.md"
+
+weights:
+  code_churn: 3
+  file_count: 2
+  test_coverage: 3
+  sensitive_files: 4
+  author_history: 1
+  dependency_changes: 2
+  pr_age: 1
+
+thresholds:
+  risk: 80
+  warn: 40
+
+ignore:
+  - "*.md"
+  - ".cursor/**"
+  - "docs/**"
