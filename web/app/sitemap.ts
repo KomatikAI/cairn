@@ -1,5 +1,8 @@
 import { MetadataRoute } from "next";
 
+// Required for `output: export` (static export) — sitemap routes must opt in.
+export const dynamic = "force-static";
+
 const SITE_URL = "https://cairn.komatik.xyz";
 
 export default function sitemap(): MetadataRoute.Sitemap {
